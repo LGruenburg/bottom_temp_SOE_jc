@@ -58,7 +58,10 @@ dim(dt_cpi_soe)
 # -----------------------------------------------------------
 # -----------------------------------------------------------
 dt_end_month<-data.frame()
+# We only want months June through October
 dt_bt_sep_oct<-filter(bt_temp_time_series_month_cpi,month %in% (6:10))
+
+#Loop through each year
 for (y in sort(unique(dt_bt_sep_oct$year))) { # for each year
   dt_pre_year<-filter(dt_bt_sep_oct,year==y) %>%
     mutate(below = ifelse(bt_temp<10, 1, 0))
@@ -127,18 +130,32 @@ dt_bt_ts_mean<-bt_temp_time_series_month_extent %>%
   as.data.frame()
 # -----------------------------------------------------------
 dt_extent_year<-data.frame()
+
+# Looping through each year
 for (y in sort(unique(bt_temp_time_series_month_extent$year))) { # for each year
+  
+  # Create a smaller dataframe of just the data from the selected year
   dt_pre_year<-filter(bt_temp_time_series_month_extent,year==y) %>%
-    mutate(below = ifelse(bt_temp<10, 1, 0))
-  # cell where monthly temperature below 10˚ at least once between June and September
+    
+    # Creates a new column in the dataframe where 1 = below 10C and 0 = above 10C
+    mutate(below = ifelse(bt_temp<10, 1, 0)) 
+  
+  # lat/lon cell where monthly temperature below 10˚ at least once between June and September
   dt_cell_cold <- dt_pre_year %>%
     group_by(source,cell_no) %>%
-    summarise(length_below=sum(below)) %>%
+    
+    # Here this summarize is telling us how many months showed values below 10C at this cell and this year
+    summarise(length_below=sum(below)) %>% 
+    
+    # Now we want to filter out cells that are only below 10C for 1 month or less
     filter(length_below>=2) %>%
     mutate(year=y) %>% as.data.frame() %>%
     select(source,year, cell_no)  
+  # For each year we will add this to the data frame
   dt_extent_year<-rbind(dt_extent_year,dt_cell_cold)
 }
+
+
 dt_extent_year<-dt_extent_year%>%
   group_by(source,year) %>%
   summarise(nbr_cell=length(cell_no)) %>%
